@@ -1,0 +1,65 @@
+# Frozen evaluation prompt suite. Edit ONLY before any generation runs.
+# {token} is replaced with the method-specific identifier:
+#   TI       -> "<my-character>"
+#   DB-LoRA  -> "sks {class_word}" (e.g., "sks cat")
+#
+# 4 categories x 4 prompts = 16 prompts, run with 4 seeds each = 64 images per checkpoint.
+
+seeds: [11, 22, 33, 44]
+
+prompts:
+  # --- style transfer ---
+  - id: style_oil_painting
+    category: style
+    text: "an oil painting of {token}, ornate gold frame, museum lighting"
+  - id: style_pixel_art
+    category: style
+    text: "pixel art of {token}, 16-bit, vibrant palette"
+  - id: style_watercolor
+    category: style
+    text: "a delicate watercolor illustration of {token} on cream paper"
+  - id: style_3d_render
+    category: style
+    text: "a stylized 3D render of {token}, soft studio lighting, octane"
+
+  # --- scene placement ---
+  - id: scene_beach
+    category: scene
+    text: "{token} on a tropical beach at sunset, golden hour"
+  - id: scene_snow
+    category: scene
+    text: "{token} in a snowy forest, falling snowflakes, dawn light"
+  - id: scene_cafe
+    category: scene
+    text: "{token} sitting in a cozy parisian cafe, warm bokeh lights"
+  - id: scene_space
+    category: scene
+    text: "{token} floating in outer space, distant nebula, dramatic lighting"
+
+  # --- pose / action ---
+  - id: pose_running
+    category: pose
+    text: "{token} running through tall grass, motion blur"
+  - id: pose_sleeping
+    category: pose
+    text: "{token} curled up sleeping on a knit blanket"
+  - id: pose_jumping
+    category: pose
+    text: "{token} mid-jump, paws in the air, action shot"
+  - id: pose_reading
+    category: pose
+    text: "{token} reading a book under a desk lamp at night"
+
+  # --- accessories / wardrobe ---
+  - id: acc_hat
+    category: accessory
+    text: "{token} wearing a small red wizard hat, studio portrait"
+  - id: acc_glasses
+    category: accessory
+    text: "{token} wearing round black-rimmed glasses, soft window light"
+  - id: acc_bowtie
+    category: accessory
+    text: "{token} wearing a polka-dot bow tie, formal portrait"
+  - id: acc_sweater
+    category: accessory
+    text: "{token} wearing a tiny knit sweater, cozy warm tones"

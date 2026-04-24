@@ -1,0 +1,24 @@
+# raw subject photos and class-prior images
+data/raw/*
+!data/raw/.gitkeep
+data/clean/
+data/prior/
+
+# heavy run outputs
+results/checkpoints/
+results/samples/
+
+# python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+.env
+
+# editor / OS
+.DS_Store
+.vscode/
+.idea/
+
+# notebooks
+.ipynb_checkpoints/

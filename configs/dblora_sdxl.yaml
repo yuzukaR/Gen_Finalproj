@@ -1,0 +1,40 @@
+# DreamBooth + LoRA on SDXL base 1.0
+base_model: stabilityai/stable-diffusion-xl-base-1.0
+resolution: 1024
+mixed_precision: fp16
+
+# Identifier and prior
+instance_token: "sks"           # rare identifier
+class_word: "cat"               # change per subject
+instance_prompt: "a photo of sks cat"
+class_prompt: "a photo of a cat"
+with_prior_preservation: true
+prior_loss_weight: 1.0
+num_class_images: 200           # generated once into data/prior
+
+# LoRA
+lora_rank: 32                   # sweep {16, 32, 64} on 5-shot trial 1, then freeze
+lora_alpha: 32
+lora_target_modules:
+  - to_k
+  - to_q
+  - to_v
+  - to_out.0
+
+# Optimization
+learning_rate: 1.0e-4
+unet_learning_rate: 1.0e-4
+text_encoder_learning_rate: 5.0e-5
+train_text_encoder: false
+lr_scheduler: constant
+lr_warmup_steps: 0
+max_train_steps: 1500
+train_batch_size: 1
+gradient_accumulation_steps: 4
+gradient_checkpointing: true
+use_8bit_adam: true
+
+# Logging / saving
+save_steps: 500
+checkpointing_steps: 750
+seed: 1234
