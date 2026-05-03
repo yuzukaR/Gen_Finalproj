@@ -20,6 +20,7 @@ import torch
 import torch.nn.functional as F
 from PIL import Image
 from torchvision import transforms
+from tqdm.auto import tqdm
 
 from src.utils.io import dump_json
 
@@ -38,13 +39,12 @@ def build_transform() -> transforms.Compose:
 
 
 @torch.inference_mode()
-def embed(model, processor_tf, paths: list[Path], device: str) -> torch.Tensor:
+def embed(model, processor_tf, paths: list[Path], device: str, desc: str) -> torch.Tensor:
     feats = []
-    for p in paths:
+    for p in tqdm(paths, desc=desc, unit="img", leave=False):
         img = Image.open(p).convert("RGB")
         x = processor_tf(img).unsqueeze(0).to(device)
         out = model(pixel_values=x)
-        # CLS token from last_hidden_state; shape (1, hidden)
         cls = out.last_hidden_state[:, 0]
         feats.append(F.normalize(cls, dim=-1).cpu())
     return torch.cat(feats, dim=0)
@@ -69,8 +69,8 @@ def main() -> None:
     if not ref_paths or not gen_paths:
         raise SystemExit("empty refs or gens")
 
-    ref_feats = embed(model, tf, ref_paths, device)   # (R, D)
-    gen_feats = embed(model, tf, gen_paths, device)   # (G, D)
+    ref_feats = embed(model, tf, ref_paths, device, "DINO refs")   # (R, D)
+    gen_feats = embed(model, tf, gen_paths, device, "DINO gens")   # (G, D)
 
     # cosine sim matrix (G, R) — both already L2-normalized
     sim = gen_feats @ ref_feats.T

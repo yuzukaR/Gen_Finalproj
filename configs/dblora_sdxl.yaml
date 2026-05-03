@@ -1,7 +1,7 @@
 # DreamBooth + LoRA on SDXL base 1.0
 base_model: stabilityai/stable-diffusion-xl-base-1.0
 resolution: 1024
-mixed_precision: fp16
+mixed_precision: bf16   # match TI; A100 supports bf16 natively, avoids fp16 NaN issues
 
 # Identifier and prior
 instance_token: "sks"           # rare identifier

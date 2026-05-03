@@ -18,6 +18,7 @@ from pathlib import Path
 import torch
 import torch.nn.functional as F
 from PIL import Image
+from tqdm.auto import tqdm
 
 from src.utils.io import dump_json, load_json
 
@@ -38,6 +39,10 @@ def main() -> None:
     ap.add_argument("--model", default=MODEL_NAME)
     args = ap.parse_args()
 
+    # Use CLIPModel/CLIPProcessor explicitly: AutoModel for CLIP returns a generic
+    # encoder whose get_text_features() yields BaseModelOutputWithPooling instead of
+    # a tensor, which crashes F.normalize. Pinned transformers<5.0 in requirements.txt
+    # keeps this import path stable.
     from transformers import CLIPModel, CLIPProcessor  # lazy
 
     manifest = load_json(args.gens / "manifest.json")
@@ -49,7 +54,7 @@ def main() -> None:
     per_item = []
     by_category: dict[str, list[float]] = {}
     with torch.inference_mode():
-        for it in items:
+        for it in tqdm(items, desc="CLIP", unit="img", leave=False):
             img = Image.open(args.gens / it["file"]).convert("RGB")
             text = strip_token(it["text"], args.strip) if args.strip else it["text"]
             inputs = proc(text=[text], images=[img],

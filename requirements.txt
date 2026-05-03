@@ -1,12 +1,28 @@
-torch>=2.1.0
+# diffusers main is required: the SDXL example training scripts hard-check
+# `check_min_version("0.38.0.dev0")`, which isn't on any released PyPI wheel.
+# This installs straight from GitHub HEAD.
+diffusers @ git+https://github.com/huggingface/diffusers.git@main
+
+# Versions below are the floors that diffusers main hard-requires at import time
+# (see diffusers/dependency_versions_table.py). Pinning them avoids the example
+# scripts' own `requirements_sdxl.txt` silently downgrading them.
+transformers>=4.41.0,<5.0   # 5.0 broke CLIPProcessor & many import paths used here
+accelerate>=0.31.0
+peft>=0.17.0
+
+# Used by the dreambooth example script for class-prior data loading.
+datasets>=2.20.0
+
+# Torch comes preinstalled in the Colab image; we just need torchvision matching it.
 torchvision>=0.16.0
-diffusers>=0.27.0
-transformers>=4.38.0
-accelerate>=0.27.0
-peft>=0.10.0
-xformers>=0.0.23
-bitsandbytes>=0.42.0
 safetensors>=0.4.0
+
+# Optional speedups. Wrapped in try/except in our code, so a build failure here
+# (common on Windows or fresh CUDA bumps) is not fatal.
+xformers
+bitsandbytes
+
+# Data prep, eval, plotting.
 Pillow>=10.0.0
 numpy>=1.24.0
 pandas>=2.0.0

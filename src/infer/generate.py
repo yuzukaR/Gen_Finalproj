@@ -12,6 +12,7 @@ from pathlib import Path
 
 import torch
 from diffusers import DiffusionPipeline
+from tqdm.auto import tqdm
 
 from src.utils.io import dump_json, load_yaml
 from src.utils.seed import set_seed
@@ -67,7 +68,7 @@ def main() -> None:
 
     if args.mode == "prior":
         set_seed(0)
-        for i in range(args.num):
+        for i in tqdm(range(args.num), desc="prior", unit="img"):
             g = torch.Generator(device="cuda").manual_seed(i)
             img = pipe(
                 args.class_prompt,
@@ -85,6 +86,8 @@ def main() -> None:
     seeds = prompts_cfg["seeds"]
 
     manifest = []
+    total = len(prompts_cfg["prompts"]) * len(seeds)
+    pbar = tqdm(total=total, desc=f"gen[{args.mode}]", unit="img")
     for prompt in prompts_cfg["prompts"]:
         text = prompt["text"].format(token=token)
         for seed in seeds:
@@ -105,6 +108,8 @@ def main() -> None:
                 "text": text,
                 "seed": seed,
             })
+            pbar.update(1)
+    pbar.close()
 
     dump_json({"mode": args.mode, "ckpt": str(args.ckpt), "items": manifest},
               args.out / "manifest.json")
