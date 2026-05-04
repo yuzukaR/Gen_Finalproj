@@ -1,11 +1,13 @@
 # raw subject photos and class-prior images
 data/raw/*
 !data/raw/.gitkeep
-data/prior/
+data/prior
+data/prior.local_backup/
 
 # heavy run outputs
 results/checkpoints/
 results/samples/
+results.local_backup/
 
 # python
 __pycache__/
