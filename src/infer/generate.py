@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Generate the frozen prompt suite from a trained checkpoint, OR class-prior images.
 
 Modes:
@@ -11,9 +13,9 @@ import argparse
 from pathlib import Path
 
 import torch
-from diffusers import DiffusionPipeline
 from tqdm.auto import tqdm
 
+from src.utils.runtime import disable_incompatible_torchao
 from src.utils.io import dump_json, load_yaml
 from src.utils.seed import set_seed
 
@@ -21,6 +23,9 @@ NEGATIVE = "low quality, blurry, deformed, extra limbs, watermark, text"
 
 
 def load_pipeline(base_model: str, mode: str, ckpt: Path | None) -> DiffusionPipeline:
+    disable_incompatible_torchao()
+    from diffusers import DiffusionPipeline
+
     device = "cuda" if torch.cuda.is_available() else "cpu"
     kwargs = {"use_safetensors": True}
     if device == "cuda":
