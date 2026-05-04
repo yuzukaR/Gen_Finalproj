@@ -17,6 +17,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+from src.train._launch import build_subprocess_env, module_available
 from src.train._shared import materialize_shot_set
 from src.utils.io import load_yaml
 from src.utils.logging import track_run
@@ -49,9 +50,10 @@ def build_cmd(cfg: dict, instance_dir: Path, prior_dir: Path, out_dir: Path) -> 
         f"--seed={cfg['seed']}",
         f"--output_dir={out_dir}",
         "--gradient_checkpointing",
-        "--enable_xformers_memory_efficient_attention",
     ]
-    if cfg.get("use_8bit_adam"):
+    if module_available("xformers"):
+        cmd.append("--enable_xformers_memory_efficient_attention")
+    if cfg.get("use_8bit_adam") and module_available("bitsandbytes"):
         cmd.append("--use_8bit_adam")
     if cfg.get("with_prior_preservation"):
         cmd += [
@@ -64,21 +66,6 @@ def build_cmd(cfg: dict, instance_dir: Path, prior_dir: Path, out_dir: Path) -> 
     if cfg.get("train_text_encoder"):
         cmd.append("--train_text_encoder")
     return cmd
-
-
-def build_env() -> dict[str, str]:
-    env = os.environ.copy()
-    project_root = Path(__file__).resolve().parents[2]
-    existing_pythonpath = env.get("PYTHONPATH")
-    env["PYTHONPATH"] = (
-        str(project_root)
-        if not existing_pythonpath
-        else f"{project_root}{os.pathsep}{existing_pythonpath}"
-    )
-    # Colab images may ship an incompatible torchao version that makes PEFT's
-    # LoRA adapter injection fail before training starts.
-    env["GENFINAL_DISABLE_TORCHAO"] = "1"
-    return env
 
 
 def main() -> None:
@@ -100,9 +87,13 @@ def main() -> None:
     extra = {"method": "dreambooth_lora", "trial": args.trial, "shots": args.shots,
              "lora_rank": cfg["lora_rank"]}
     print("Launching:", " ".join(cmd), flush=True)
+    if not module_available("xformers"):
+        print("Environment: xformers unavailable, training without memory-efficient attention", flush=True)
+    if cfg.get("use_8bit_adam") and not module_available("bitsandbytes"):
+        print("Environment: bitsandbytes unavailable, falling back to standard AdamW", flush=True)
     print("Environment: forcing PEFT to ignore incompatible torchao installs", flush=True)
     with track_run(log_path, extra=extra):
-        rc = subprocess.call(cmd, env=build_env())
+        rc = subprocess.call(cmd, env=build_subprocess_env(disable_torchao=True))
     if rc != 0:
         sys.exit(rc)
 

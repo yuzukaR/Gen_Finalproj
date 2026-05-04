@@ -10,6 +10,8 @@ def materialize_shot_set(splits_path: Path, trial: str, shots: int, dst: Path) -
     splits = load_json(splits_path)
     clean_dir = Path(splits["clean_dir"])
     files = splits["splits"][trial][f"shots{shots}"]
+    if dst.exists():
+        shutil.rmtree(dst)
     dst.mkdir(parents=True, exist_ok=True)
     for f in files:
         shutil.copy2(clean_dir / f, dst / f)

@@ -21,23 +21,26 @@ NEGATIVE = "low quality, blurry, deformed, extra limbs, watermark, text"
 
 
 def load_pipeline(base_model: str, mode: str, ckpt: Path | None) -> DiffusionPipeline:
-    pipe = DiffusionPipeline.from_pretrained(
-        base_model,
-        torch_dtype=torch.float16,
-        variant="fp16",
-        use_safetensors=True,
-    )
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    kwargs = {"use_safetensors": True}
+    if device == "cuda":
+        kwargs["torch_dtype"] = torch.float16
+        kwargs["variant"] = "fp16"
+    else:
+        kwargs["torch_dtype"] = torch.float32
+    pipe = DiffusionPipeline.from_pretrained(base_model, **kwargs)
     if mode == "ti":
         # diffusers stores the trained embedding under ckpt; shape is detected automatically.
         pipe.load_textual_inversion(str(ckpt))
     elif mode == "dblora":
         pipe.load_lora_weights(str(ckpt))
-    pipe.to("cuda")
+    pipe.to(device)
     pipe.set_progress_bar_config(disable=True)
-    try:
-        pipe.enable_xformers_memory_efficient_attention()
-    except Exception:
-        pass
+    if device == "cuda":
+        try:
+            pipe.enable_xformers_memory_efficient_attention()
+        except Exception:
+            pass
     return pipe
 
 
@@ -65,11 +68,12 @@ def main() -> None:
 
     args.out.mkdir(parents=True, exist_ok=True)
     pipe = load_pipeline(args.base_model, args.mode, args.ckpt)
+    generator_device = "cuda" if torch.cuda.is_available() else "cpu"
 
     if args.mode == "prior":
         set_seed(0)
         for i in tqdm(range(args.num), desc="prior", unit="img"):
-            g = torch.Generator(device="cuda").manual_seed(i)
+            g = torch.Generator(device=generator_device).manual_seed(i)
             img = pipe(
                 args.class_prompt,
                 negative_prompt=NEGATIVE,
@@ -91,7 +95,7 @@ def main() -> None:
     for prompt in prompts_cfg["prompts"]:
         text = prompt["text"].format(token=token)
         for seed in seeds:
-            g = torch.Generator(device="cuda").manual_seed(seed)
+            g = torch.Generator(device=generator_device).manual_seed(seed)
             img = pipe(
                 text,
                 negative_prompt=NEGATIVE,

@@ -20,6 +20,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+from src.train._launch import build_subprocess_env, module_available
 from src.train._shared import materialize_shot_set
 from src.utils.io import load_yaml
 from src.utils.logging import track_run
@@ -34,7 +35,7 @@ def build_cmd(cfg: dict, instance_dir: Path, out_dir: Path) -> list[str]:
             f"Set {DIFFUSERS_SCRIPT_ENV} to the path of "
             "diffusers/examples/textual_inversion/textual_inversion_sdxl.py"
         )
-    return [
+    cmd = [
         "accelerate", "launch", script,
         f"--pretrained_model_name_or_path={cfg['base_model']}",
         f"--train_data_dir={instance_dir}",
@@ -53,8 +54,10 @@ def build_cmd(cfg: dict, instance_dir: Path, out_dir: Path) -> list[str]:
         f"--seed={cfg['seed']}",
         f"--output_dir={out_dir}",
         "--gradient_checkpointing",
-        "--enable_xformers_memory_efficient_attention",
     ]
+    if module_available("xformers"):
+        cmd.append("--enable_xformers_memory_efficient_attention")
+    return cmd
 
 
 def main() -> None:
@@ -74,8 +77,10 @@ def main() -> None:
     log_path = args.out / "run_stats.json"
     extra = {"method": "textual_inversion", "trial": args.trial, "shots": args.shots}
     print("Launching:", " ".join(cmd), flush=True)
+    if not module_available("xformers"):
+        print("Environment: xformers unavailable, training without memory-efficient attention", flush=True)
     with track_run(log_path, extra=extra):
-        rc = subprocess.call(cmd)
+        rc = subprocess.call(cmd, env=build_subprocess_env())
     if rc != 0:
         sys.exit(rc)
 
