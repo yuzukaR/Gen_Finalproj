@@ -66,6 +66,21 @@ def build_cmd(cfg: dict, instance_dir: Path, prior_dir: Path, out_dir: Path) -> 
     return cmd
 
 
+def build_env() -> dict[str, str]:
+    env = os.environ.copy()
+    project_root = Path(__file__).resolve().parents[2]
+    existing_pythonpath = env.get("PYTHONPATH")
+    env["PYTHONPATH"] = (
+        str(project_root)
+        if not existing_pythonpath
+        else f"{project_root}{os.pathsep}{existing_pythonpath}"
+    )
+    # Colab images may ship an incompatible torchao version that makes PEFT's
+    # LoRA adapter injection fail before training starts.
+    env["GENFINAL_DISABLE_TORCHAO"] = "1"
+    return env
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--config", required=True, type=Path)
@@ -85,8 +100,9 @@ def main() -> None:
     extra = {"method": "dreambooth_lora", "trial": args.trial, "shots": args.shots,
              "lora_rank": cfg["lora_rank"]}
     print("Launching:", " ".join(cmd), flush=True)
+    print("Environment: forcing PEFT to ignore incompatible torchao installs", flush=True)
     with track_run(log_path, extra=extra):
-        rc = subprocess.call(cmd)
+        rc = subprocess.call(cmd, env=build_env())
     if rc != 0:
         sys.exit(rc)
 
