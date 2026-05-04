@@ -27,3 +27,40 @@ def module_available(name: str) -> bool:
     except Exception:
         return False
     return True
+
+
+def resolve_diffusers_example_script(env_var: str, relative_path: str) -> str:
+    configured = os.environ.get(env_var)
+    if configured:
+        script = Path(configured).expanduser()
+        if script.is_file():
+            return str(script)
+        raise SystemExit(f"{env_var} is set but does not exist: {script}")
+
+    project_root = Path(__file__).resolve().parents[2]
+    candidates = []
+
+    diffusers_dir = os.environ.get("DIFFUSERS_DIR")
+    if diffusers_dir:
+        candidates.append(Path(diffusers_dir).expanduser() / relative_path)
+
+    candidates.extend([
+        Path("/content/diffusers") / relative_path,
+        project_root / "diffusers" / relative_path,
+        project_root.parent / "diffusers" / relative_path,
+        Path.cwd() / "diffusers" / relative_path,
+    ])
+
+    seen = set()
+    for candidate in candidates:
+        resolved = candidate.resolve(strict=False)
+        if resolved in seen:
+            continue
+        seen.add(resolved)
+        if candidate.is_file():
+            return str(candidate)
+
+    raise SystemExit(
+        f"Set {env_var} to the path of diffusers/{relative_path}, "
+        "or clone diffusers to /content/diffusers in Colab."
+    )

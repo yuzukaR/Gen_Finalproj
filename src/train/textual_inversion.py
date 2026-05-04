@@ -15,12 +15,15 @@ Requires `diffusers` installed from source or `examples/` on PYTHONPATH; we shel
 out via accelerate so memory + multi-GPU behavior matches the upstream script.
 """
 import argparse
-import os
 import subprocess
 import sys
 from pathlib import Path
 
-from src.train._launch import build_subprocess_env, module_available
+from src.train._launch import (
+    build_subprocess_env,
+    module_available,
+    resolve_diffusers_example_script,
+)
 from src.train._shared import materialize_shot_set
 from src.utils.io import load_yaml
 from src.utils.logging import track_run
@@ -29,12 +32,10 @@ DIFFUSERS_SCRIPT_ENV = "DIFFUSERS_TI_SDXL_SCRIPT"  # path to textual_inversion_s
 
 
 def build_cmd(cfg: dict, instance_dir: Path, out_dir: Path) -> list[str]:
-    script = os.environ.get(DIFFUSERS_SCRIPT_ENV)
-    if not script:
-        raise SystemExit(
-            f"Set {DIFFUSERS_SCRIPT_ENV} to the path of "
-            "diffusers/examples/textual_inversion/textual_inversion_sdxl.py"
-        )
+    script = resolve_diffusers_example_script(
+        DIFFUSERS_SCRIPT_ENV,
+        "examples/textual_inversion/textual_inversion_sdxl.py",
+    )
     cmd = [
         "accelerate", "launch", script,
         f"--pretrained_model_name_or_path={cfg['base_model']}",

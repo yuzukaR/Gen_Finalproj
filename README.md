@@ -25,6 +25,15 @@ python -m src.infer.generate \
 bash scripts/run_grid.sh
 ```
 
+If you run training in Colab, clone Diffusers examples once before launching:
+
+```bash
+git clone --depth 1 https://github.com/huggingface/diffusers.git /content/diffusers
+```
+
+The training wrappers now auto-detect `/content/diffusers`, so the
+`DIFFUSERS_*_SDXL_SCRIPT` env vars are optional unless you keep the checkout elsewhere.
+
 ## Layout
 
 ```
