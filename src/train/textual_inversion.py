@@ -57,8 +57,8 @@ def build_cmd(cfg: dict, instance_dir: Path, out_dir: Path) -> list[str]:
         f"--output_dir={out_dir}",
         "--gradient_checkpointing",
     ]
-    if "scale_lr" in cfg:
-        cmd.append(f"--scale_lr={cfg['scale_lr']}")
+    if cfg.get("scale_lr"):
+        cmd.append("--scale_lr")
     if "adam_beta1" in cfg:
         cmd.append(f"--adam_beta1={cfg['adam_beta1']}")
     if "adam_beta2" in cfg:
