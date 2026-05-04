@@ -31,6 +31,14 @@ def main() -> None:
     ap.add_argument("--size", type=int, default=1024)
     args = ap.parse_args()
 
+    if not args.raw.exists():
+        raise SystemExit(
+            f"Raw image directory not found: {args.raw}. "
+            "Put source photos in data/raw/ or pass --raw to the correct folder."
+        )
+    if not args.raw.is_dir():
+        raise SystemExit(f"Raw image path is not a directory: {args.raw}")
+
     sources = sorted(p for p in args.raw.iterdir() if p.suffix.lower() in EXTS)
     if not sources:
         raise SystemExit(f"No images found in {args.raw}")
