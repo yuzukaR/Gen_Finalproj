@@ -22,17 +22,34 @@ from src.utils.seed import set_seed
 NEGATIVE = "low quality, blurry, deformed, extra limbs, watermark, text"
 
 
-def load_pipeline(base_model: str, mode: str, ckpt: Path | None) -> DiffusionPipeline:
+def resolve_generation_dtype(device: str, mixed_precision: str | None) -> tuple[torch.dtype, str | None]:
+    if device != "cuda":
+        return torch.float32, None
+
+    if mixed_precision == "bf16" and torch.cuda.is_bf16_supported():
+        # SDXL publishes fp16 weight variants; load those files but run the pipeline in bf16
+        # so Colab A100 sampling matches the training config more closely.
+        return torch.bfloat16, "fp16"
+
+    return torch.float16, "fp16"
+
+
+def load_pipeline(
+    base_model: str,
+    mode: str,
+    ckpt: Path | None,
+    *,
+    mixed_precision: str | None = None,
+) -> DiffusionPipeline:
     disable_incompatible_torchao()
     from diffusers import DiffusionPipeline
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     kwargs = {"use_safetensors": True}
-    if device == "cuda":
-        kwargs["torch_dtype"] = torch.float16
-        kwargs["variant"] = "fp16"
-    else:
-        kwargs["torch_dtype"] = torch.float32
+    torch_dtype, variant = resolve_generation_dtype(device, mixed_precision)
+    kwargs["torch_dtype"] = torch_dtype
+    if variant is not None:
+        kwargs["variant"] = variant
     pipe = DiffusionPipeline.from_pretrained(base_model, **kwargs)
     if mode == "ti":
         # diffusers stores the trained embedding under ckpt; shape is detected automatically.
@@ -72,7 +89,18 @@ def main() -> None:
     args = ap.parse_args()
 
     args.out.mkdir(parents=True, exist_ok=True)
-    pipe = load_pipeline(args.base_model, args.mode, args.ckpt)
+    method_cfg = None
+    if args.mode != "prior":
+        if args.method_config is None:
+            raise SystemExit("--method_config is required for ti and dblora generation")
+        method_cfg = load_yaml(args.method_config)
+
+    pipe = load_pipeline(
+        args.base_model,
+        args.mode,
+        args.ckpt,
+        mixed_precision=(method_cfg or {}).get("mixed_precision"),
+    )
     generator_device = "cuda" if torch.cuda.is_available() else "cpu"
 
     if args.mode == "prior":
@@ -89,7 +117,6 @@ def main() -> None:
             img.save(args.out / f"prior_{i:04d}.png")
         return
 
-    method_cfg = load_yaml(args.method_config)
     prompts_cfg = load_yaml(args.prompts)
     token = render_token(args.mode, method_cfg)
     seeds = prompts_cfg["seeds"]

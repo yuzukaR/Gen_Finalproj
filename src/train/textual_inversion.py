@@ -52,10 +52,21 @@ def build_cmd(cfg: dict, instance_dir: Path, out_dir: Path) -> list[str]:
         f"--lr_warmup_steps={cfg['lr_warmup_steps']}",
         f"--mixed_precision={cfg['mixed_precision']}",
         f"--save_steps={cfg['save_steps']}",
+        f"--checkpointing_steps={cfg['checkpointing_steps']}",
         f"--seed={cfg['seed']}",
         f"--output_dir={out_dir}",
         "--gradient_checkpointing",
     ]
+    if "scale_lr" in cfg:
+        cmd.append(f"--scale_lr={cfg['scale_lr']}")
+    if "adam_beta1" in cfg:
+        cmd.append(f"--adam_beta1={cfg['adam_beta1']}")
+    if "adam_beta2" in cfg:
+        cmd.append(f"--adam_beta2={cfg['adam_beta2']}")
+    if "adam_weight_decay" in cfg:
+        cmd.append(f"--adam_weight_decay={cfg['adam_weight_decay']}")
+    if "adam_epsilon" in cfg:
+        cmd.append(f"--adam_epsilon={cfg['adam_epsilon']}")
     if module_available("xformers"):
         cmd.append("--enable_xformers_memory_efficient_attention")
     return cmd
