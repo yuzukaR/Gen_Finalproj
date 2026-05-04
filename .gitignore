@@ -1,7 +1,6 @@
 # raw subject photos and class-prior images
 data/raw/*
 !data/raw/.gitkeep
-data/clean/
 data/prior/
 
 # heavy run outputs
