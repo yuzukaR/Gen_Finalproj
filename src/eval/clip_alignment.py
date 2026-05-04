@@ -39,10 +39,10 @@ def main() -> None:
     ap.add_argument("--model", default=MODEL_NAME)
     args = ap.parse_args()
 
-    # Use CLIPModel/CLIPProcessor explicitly: AutoModel for CLIP returns a generic
-    # encoder whose get_text_features() yields BaseModelOutputWithPooling instead of
-    # a tensor, which crashes F.normalize. Pinned transformers<5.0 in requirements.txt
-    # keeps this import path stable.
+    # Use CLIPModel/CLIPProcessor explicitly. Some environments still surface
+    # BaseModelOutputWithPooling through CLIP text helpers, so we score from the
+    # full CLIP forward pass and normalize the returned text/image embeddings.
+    # Pinned transformers<5.0 in requirements.txt keeps this import path stable.
     from transformers import CLIPModel, CLIPProcessor  # lazy
 
     manifest = load_json(args.gens / "manifest.json")
@@ -59,9 +59,9 @@ def main() -> None:
             text = strip_token(it["text"], args.strip) if args.strip else it["text"]
             inputs = proc(text=[text], images=[img],
                           return_tensors="pt", padding=True, truncation=True).to(device)
-            t = F.normalize(model.get_text_features(input_ids=inputs.input_ids,
-                                                   attention_mask=inputs.attention_mask), dim=-1)
-            v = F.normalize(model.get_image_features(pixel_values=inputs.pixel_values), dim=-1)
+            outputs = model(**inputs)
+            t = F.normalize(outputs.text_embeds, dim=-1)
+            v = F.normalize(outputs.image_embeds, dim=-1)
             score = float((t * v).sum(dim=-1).item())
             per_item.append({**it, "clip_score": score, "scored_text": text})
             by_category.setdefault(it["category"], []).append(score)
